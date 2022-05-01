@@ -1,128 +1,74 @@
 #!/bin/bash
-
-export HOST_IP=$(ip -4 route list match 0/0 | awk '{print $3}')
-
-home_type=$(yq e '.homepage.type' start9/config.yaml)
-subdomains=($(yq e '.subdomains.[].name' start9/config.yaml))
-tor_address=($(yq e '.tor-address' start9/config.yaml))
-
-read -r -d "" build_site_desc <<EOT
-{
-    "description": "Subdomain link for the site " + .,
-    "masked": false,
-    "copyable": true,
-    "qr": false,
-    "type": "string",
-    "value": . + ".$tor_address"
+set -e
+_term() {
+  echo "Caught SIGTERM signal!"
+  kill -TERM "$backend_process" 2>/dev/null
 }
-EOT
-yq e ".subdomains.[].name | {.: $build_site_desc}" start9/config.yaml > start9/stats.yaml
-yq e -i '{"value": . }' start9/stats.yaml
-yq e -i '.type="object"' start9/stats.yaml
-yq e -i '.description="The available subdomains."' start9/stats.yaml
-yq e -i '{"Subdomains": . }' start9/stats.yaml
-yq e -i '{"data": .}' start9/stats.yaml
-yq e -i '.version = 2' start9/stats.yaml
-if [ ! -s start9/stats.yaml ] ; then
-    rm start9/stats.yaml
-fi
 
-bucket_size=64
-for subdomain in "${subdomains[@]}"; do
-    suffix=".${tor_address}"
-    len=$(( ${#suffix} + ${#subdomain} ))
-    if [[ $len -ge $bucket_size ]]; then
-        bucket_size=$(( $bucket_size * 2 ))
-    fi
-done
 
-if [[ $home_type = "index" ]]; then
-    if [ ${#subdomains} -ne 0 ]; then
-        cp /var/www/index/index-prefix.html /var/www/index/index.html
-        for subdomain in "${subdomains[@]}"; do
-            echo "      <li><a target=\"_blank\" href=\"http://${subdomain}.${tor_address}\">${subdomain}</a></li>" >> /var/www/index/index.html
-        done
-        cat /var/www/index/index-suffix.html >> /var/www/index/index.html
-    else
-        cp /var/www/index/empty.html /var/www/index/index.html
-    fi
-fi
-
-echo "server_names_hash_bucket_size ${bucket_size};" > /etc/nginx/http.d/default.conf
-
-if ! test -d /mnt/filebrowser
-then
-    echo "Filebrowser mountpoint does not exist"
-    exit 0
-fi
-
-if [[ $home_type = "redirect" ]]; then
-    target=$(yq e '.homepage.target' start9/config.yaml)
-    cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  listen 80;
-  listen [::]:80;
-  server_name ${tor_address};
-  return 301 http://${target}.${tor_address}$request_uri;
-}
-EOT
-elif [[ $home_type = "filebrowser" ]]; then
-    directory=$(yq e '.homepage.directory' start9/config.yaml)
-    cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  autoindex on;
-  listen 80;
-  listen [::]:80;
-  server_name ${tor_address};
-  root "/mnt/filebrowser/${directory}";
-}
-EOT
+bitcoind_type=$(yq e '.bitcoind.type' /root/start9/config.yaml)
+bitcoind_user=$(yq e '.bitcoind.user' /root/start9/config.yaml)
+bitcoind_pass=$(yq e '.bitcoind.password' /root/start9/config.yaml)
+# configure mempool to use just a bitcoind backend
+if [ "$bitcoind_type" = "internal-proxy" ]; then
+	bitcoind_host="btc-rpc-proxy.embassy"
+	echo "Running on Bitcoin Proxy..."
 else
-    cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  listen 80;
-  listen [::]:80;
-  server_name ${tor_address};
-  root "/var/www/${home_type}";
-}
-EOT
+	bitcoind_host="bitcoind.embassy"
+	echo "Running on Bitcoin Core..."
 fi
 
-for subdomain in "${subdomains[@]}"; do
-    subdomain_type=$(yq e ".subdomains.[] | select(.name == \"$subdomain\") | .settings |.type" start9/config.yaml)
-    if [[ $subdomain_type == "filebrowser" ]]; then
-        directory="$(yq e ".subdomains.[] | select(.name == \"$subdomain\") | .settings | .directory" start9/config.yaml)"
-        cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  autoindex on;
-  listen 80;
-  listen [::]:80;
-  server_name ${subdomain}.${tor_address};
-  root "/mnt/filebrowser/${directory}";
-}
-EOT
-    elif [ $subdomain_type = "redirect" ]; then
-        if [ "$(yq e ".subdomains.[] | select(.name == \"$subdomain\") | .settings | .target == ~" start9/config.yaml)" = "true"]; then
-            cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  listen 80;
-  listen [::]:80;
-  server_name ${subdomain}.${tor_address};
-  return 301 http://${tor_address}$request_uri;
-}
-EOT
-        else
-            target="$(yq e ".subdomains.[] | select(.name == \"$subdomain\") | .settings | .target" start9/config.yaml)"
-            cat >> /etc/nginx/http.d/default.conf <<EOT
-server {
-  listen 80;
-  listen [::]:80;
-  server_name ${subdomain}.${tor_address};
-  return 301 http://${target}.${tor_address}$request_uri;
-}
-EOT
-        fi
-    fi
-done
 
-exec tini -- nginx -g "daemon off;"
+TOR_ADDRESS=$(yq e '.tor-address' /root/start9/config.yaml)
+PEER_TOR_ADDRESS=$(yq e '.peer-tor-address' /root/start9/config.yaml)
+LAN_ADDRESS=$(yq e '.lan-address' /root/start9/config.yaml)
+LND_ADDRESS='lnd.embassy'
+SQUEAKNODE_ADDRESS='squeaknode.embassy'
+SQUEAKNODE_PASS=$(yq e '.password' /root/start9/config.yaml)
+HOST_IP=$(ip -4 route list match 0/0 | awk '{print $3}')
+
+
+export SQUEAKNODE_BITCOIN_RPC_HOST=$bitcoind_host
+export SQUEAKNODE_BITCOIN_RPC_PORT=8332
+export SQUEAKNODE_BITCOIN_RPC_USER=$bitcoind_user
+export SQUEAKNODE_BITCOIN_RPC_PASS=$bitcoind_pass
+export SQUEAKNODE_LND_HOST=$LND_ADDRESS
+export SQUEAKNODE_LND_RPC_PORT=10009
+export SQUEAKNODE_LND_TLS_CERT_PATH="/mnt/lnd/tls.cert"
+export SQUEAKNODE_LND_MACAROON_PATH="/mnt/lnd/data/chain/bitcoin/mainnet/admin.macaroon"
+export SQUEAKNODE_TOR_PROXY_IP=$HOST_IP
+export SQUEAKNODE_TOR_PROXY_PORT=9050
+export SQUEAKNODE_WEBADMIN_ENABLED="true"
+export SQUEAKNODE_WEBADMIN_USERNAME='squeaknode-admin'
+export SQUEAKNODE_WEBADMIN_PASSWORD=$SQUEAKNODE_PASS
+export SQUEAKNODE_NODE_NETWORK='mainnet'
+export SQUEAKNODE_NODE_SQK_DIR_PATH='/root/sqk'
+export SQUEAKNODE_NODE_MAX_SQUEAKS=10000
+export SQUEAKNODE_SERVER_EXTERNAL_ADDRESS=$PEER_TOR_ADDRESS
+
+
+# Creating duplicate directory for the lnd macaroon files
+mkdir -p /mnt/lnd/data/chain/bitcoin/mainnet
+cp /mnt/lnd/*.macaroon /mnt/lnd/data/chain/bitcoin/mainnet
+
+# Properties Page showing password to be used for login
+  echo 'version: 2' >> /root/start9/stats.yaml
+  echo 'data:' >> /root/start9/stats.yaml
+  echo '  Username: ' >> /root/start9/stats.yaml
+        echo '    type: string' >> /root/start9/stats.yaml
+        echo '    value: squeaknode-admin' >> /root/start9/stats.yaml
+        echo '    description: This is your admin username for Squeaknode' >> /root/start9/stats.yaml
+        echo '    copyable: true' >> /root/start9/stats.yaml
+        echo '    masked: false' >> /root/start9/stats.yaml
+        echo '    qr: false' >> /root/start9/stats.yaml
+  echo '  Password: ' >> /root/start9/stats.yaml
+        echo '    type: string' >> /root/start9/stats.yaml
+        echo "    value: \"$SQUEAKNODE_PASS\"" >> /root/start9/stats.yaml
+        echo '    description: This is your admin password for Squeaknode. Please use caution when sharing this password, you could lose your funds!' >> /root/start9/stats.yaml
+        echo '    copyable: true' >> /root/start9/stats.yaml
+        echo '    masked: true' >> /root/start9/stats.yaml
+        echo '    qr: false' >> /root/start9/stats.yaml
+
+# Starting Squeaknode process
+echo "starting squeaknode..."
+exec squeaknode --log-level INFO

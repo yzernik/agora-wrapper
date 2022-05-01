@@ -1,5 +1,3 @@
-.DS_Store
-www/.DS_Store
-embassy-pages.s9pk
+squeaknode.s9pk
 image.tar
-test_config.yaml
+tri-push.sh

@@ -1,88 +1,87 @@
 tor-address:
-  name: Tor Address
-  description: The Tor address.
+  name: Network Tor Address
+  description: The Tor address for the network interface.
   type: pointer
   subtype: package
-  package-id: embassy-pages
+  package-id: squeaknode
   target: tor-address
   interface: main
-homepage:
-  name: Homepage
-  description: The page that will be displayed when your Embassy Pages .onion address is visited. Since this page is technically publicly accessible, you can choose to which type of page to display.
+peer-tor-address:
+  name: Peer Tor Address
+  description: The Tor address for the peer interface.
+  type: pointer
+  subtype: package
+  package-id: squeaknode
+  target: tor-address
+  interface: peer
+lan-address:
+  name: Network LAN Address
+  description: The LAN address for the network interface.
+  type: pointer
+  subtype: package
+  package-id: squeaknode
+  target: lan-address
+  interface: main
+password:
+  type: string
+  name: Password
+  description: Administrator password for Squeaknode (The username is 'squeaknode-admin')
+  nullable: false
+  copyable: true
+  masked: true
+  default:
+    charset: "a-z,A-Z,0-9"
+    len: 22
+bitcoind:
   type: union
-  default: welcome
+  name: Bitcoin Core
+  description: The Bitcoin Core node to connect to
   tag:
     id: type
     name: Type
+    description: |
+      - Internal: The Bitcoin Core service installed to your Embassy
+      - Internal Proxy: The Bitcoin Proxy service installed on your Embassy
     variant-names:
-      welcome: Welcome
-      index: Subdomain Index
-      filebrowser: Web Page
-      redirect: Redirect
-      fuck-off: Fuck Off
+      internal: Internal
+      internal-proxy: Internal (Bitcoin Proxy)
+  default: internal
   variants:
-    welcome: {}
-    index: {}
-    filebrowser:
-      directory:
-        type: string
-        name: Directory Path
-        description: The path to the directory in File Browser that contains the static files of your website. For example, a value of "websites/resume_site" would tell Embassy Pages to look for that directory in File Browser.
-        pattern: "^(\\.|[a-zA-Z0-9_ -][a-zA-Z0-9_ .-]*|([a-zA-Z0-9_ .-][a-zA-Z0-9_ -]+\\.*)+)(/[a-zA-Z0-9_ -][a-zA-Z0-9_ .-]*|/([a-zA-Z0-9_ .-][a-zA-Z0-9_ -]+\\.*)+)*/?$"
-        pattern-description: Must be a valid relative file path
-        nullable: false
-    redirect:
-      target:
-        type: string
-        name: Target Subdomain
-        description: The name of the subdomain to redirect users to. This must be a valid subdomain site within your Embassy Pages. 
-        pattern: '^[a-z-]+$'
-        pattern-description: May contain only lowercase characters and hyphens.
-        nullable: false
-    fuck-off: {}
-subdomains:
-  type: list
-  name: Subdomains
-  description: The websites you want to serve.
-  default: []
-  range: '[0, *)'
-  subtype: object
-  spec:
-    unique-by: name
-    display-as: "{{name}}"
-    spec:
-      name:
-        type: string
-        nullable: false
-        name: Subdomain name
-        description: The subdomain of your Embassy Pages .onion address to host the website on. For example, a value of "me" would produce a website hosted at http://me.myaddress.onion.
-        pattern: "^[a-z-]+$"
-        pattern-description: "May contain only lowercase characters and hyphens"
-      settings:
-        type: union
-        name: Settings
-        description: The desired behavior you want to occur when the subdomain is visited. You can either redirect to another subdomain, or load a web page from File Browser.
-        default: filebrowser
-        tag:
-          id: type
-          name: Type
-          variant-names:
-            filebrowser: Web Page
-            redirect: Redirect
-        variants:
-          filebrowser:
-            directory:
-              type: string
-              name: Directory Path
-              description: The path to the directory in File Browser that contains the static files of your website. For example, a value of "websites/resume_site" would tell Embassy Pages to look for that directory in File Browser.
-              pattern: "^(\\.|[a-zA-Z0-9_ -][a-zA-Z0-9_ .-]*|([a-zA-Z0-9_ .-][a-zA-Z0-9_ -]+\\.*)+)(/[a-zA-Z0-9_ -][a-zA-Z0-9_ .-]*|/([a-zA-Z0-9_ .-][a-zA-Z0-9_ -]+\\.*)+)*/?$"
-              pattern-description: Must be a valid relative file path
-              nullable: false
-          redirect:
-            target:
-              type: string
-              name: Target Subdomain
-              description: The subdomain of your Embassy Pages .onion address to redirect to. This should be the name of another subdomain on Embassy Pages. Leave empty to redirect to the homepage.
-              pattern: '^[a-z-]+$'
-              pattern-description: May contain only lowercase characters and hyphens.
-              nullable: false
+    internal:
+      user:
+        type: pointer
+        name: RPC Username
+        description: The username for the RPC user for Bitcoin Core
+        subtype: package
+        package-id: bitcoind
+        target: config
+        selector: "$.rpc.username"
+        multi: false
+      password:
+        type: pointer
+        name: RPC Password
+        description: The password for the RPC user for Bitcoin Core
+        subtype: package
+        package-id: bitcoind
+        target: config
+        selector: "$.rpc.password"
+        multi: false
+    internal-proxy:
+      user:
+        type: pointer
+        name: RPC Username
+        description: The username for the RPC user allocated to Squeaknode
+        subtype: package
+        package-id: btc-rpc-proxy
+        target: config
+        multi: false
+        selector: '$.users.[?(@.name == "squeaknode")].name'
+      password:
+        type: pointer
+        name: RPC Password
+        description: The password for the RPC user allocated to Squeaknode
+        subtype: package
+        package-id: btc-rpc-proxy
+        target: config
+        multi: false
+        selector: '$.users.[?(@.name == "squeaknode")].password'
