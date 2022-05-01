@@ -1,6 +1,6 @@
-# Basic instructions for setup of Squeaknode
+# Basic instructions for setup of Agora
 
-This project wraps the [Squeaknode](https://github.com/squeaknode/squeaknode) app for EmbassyOS.
+This project wraps the [Agora](https://github.com/agora-org/agora) app for EmbassyOS.
 
 ## Dependencies
 
@@ -8,7 +8,6 @@ This project wraps the [Squeaknode](https://github.com/squeaknode/squeaknode) ap
 - [docker-buildx](https://docs.docker.com/buildx/working-with-buildx/)
 - [yq](https://mikefarah.gitbook.io/yq)
 - [toml](https://crates.io/crates/toml-cli)
-- [appmgr](https://github.com/Start9Labs/appmgr)
 - [make](https://www.gnu.org/software/make/)
 
 ## Cloning
@@ -16,8 +15,8 @@ This project wraps the [Squeaknode](https://github.com/squeaknode/squeaknode) ap
 Clone the project locally. Note the submodule link to the original project(s).
 
 ```
-git clone git@github.com:squeaknode/squeaknode-wrapper.git
-cd squeaknode-wrapper
+git clone git@github.com:yzernik/agora-wrapper.git
+cd agora-wrapper
 git submodule update --init --recursive
 docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
 ```
@@ -36,12 +35,12 @@ SSH into an Embassy device.
 `scp` the `.s9pk` to any directory from your local machine.
 
 ```
-scp squeaknode.s9pk root@<LAN ID>:/root
+scp agora.s9pk root@<LAN ID>:/root
 ```
 
 Run the following command to determine successful install:
 
 ```
 embassy-cli auth login
-embassy-cli package install squeaknode.s9pk
+embassy-cli package install agora.s9pk
 ```
