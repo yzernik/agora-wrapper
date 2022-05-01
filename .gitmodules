@@ -1,3 +1,6 @@
 [submodule "squeaknode"]
 	path = squeaknode
 	url = https://github.com/squeaknode/squeaknode.git
+[submodule "agora"]
+	path = agora
+	url = https://github.com/agora-org/agora.git

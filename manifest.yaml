@@ -1,16 +1,16 @@
-id: squeaknode
-title: Squeaknode
-version: 0.2.22
-release-notes: Initial release of a Squeaknode for EmbassyOS v0.3.0.2
+id: agora
+title: Agora
+version: 0.1.2
+release-notes: Initial release of Agora for EmbassyOS v0.3.0.2
 license: mit
-wrapper-repo: "https://github.com/squeaknode/squeaknode-wrapper"
-upstream-repo: "https://github.com/squeaknode/squeaknode"
-support-site: "https://t.me/squeaknode"
-marketing-site: "https://squeaknode.org/"
+wrapper-repo: "https://github.com/yzernik/agora-wrapper"
+upstream-repo: "https://github.com/agora-org/agora"
+support-site: "https://t.me/agoradiscussion"
+marketing-site: "https://agora-org.github.io/agora/"
 build: ["make"]
 description:
-  short: "Peer-to-peer status feed with posts unlocked by Lightning"
-  long: "Squeaknode is a peer-to-peer microblog with posts unlocked by Lightning Network payments. The app allows you to create, view, buy, and sell squeaks. A squeak is a post that can contain up to 280 characters. The Squeaknode timeline is ordered by the height of the Bitcoin block hash embedded in each squeak. Each squeak must be signed with the private key of the author. Squeaks can be downloaded from any peer to any peer, but they remain locked until the downloader makes a Lightning payment to decrypt the content."
+  short: "Sell your files for Bitcoin"
+  long: "Agora is a project that allows anyone to sell files on the web for bitcoin using the Lightning Network.\n\nAgora serves the contents of a local directory, providing file listings and downloads over HTTP. For example, you can point it at a directory full of PDFs, allowing users to browse and view the PDFs in their web browser. If agora is connected to an LND node, it can be configured to require Lightning Network payments for downloads."
 assets:
   license: LICENSE
   icon: icon.png
@@ -25,11 +25,12 @@ main:
     main: /root
     compat: /mnt/assets
     lnd: /mnt/lnd
+    filebrowser: /mnt/filebrowser
   io-format: yaml
 health-checks:
   main:
     name: Web Interface
-    success-message: The Squeaknode UI is ready to visit in a web browser
+    success-message: The Agora UI is ready to visit in a web browser
     type: docker
     image: main
     entrypoint: health-check.sh
@@ -59,7 +60,7 @@ config:
     args:
       - config
       - set
-      - squeaknode
+      - agora
       - /root
       - /mnt/assets/config_rules.yaml
     mounts:
@@ -82,6 +83,12 @@ volumes:
     type: data
   compat:
     type: assets
+  filebrowser:
+    type: pointer
+    package-id: filebrowser
+    volume-id: main
+    path: /data
+    readonly: true
   lnd:
     type: pointer
     package-id: lnd
@@ -91,108 +98,21 @@ volumes:
 interfaces:
   main:
     name: Browser Interface
-    description: The main Squeaknode browser interface
+    description: The main Agora browser interface
     tor-config:
       port-mapping:
-        80: "12994"
-    lan-config:
-      443:
-        ssl: true
-        internal: 12994
+        80: "8080"
     ui: true
     protocols:
       - tcp
       - http
-  peer:
-    name: Peer Interface
-    description: Specifies the interfaces to listen on for p2p requests.
-    tor-config:
-      port-mapping:
-        8555: "8555"
-    ui: false
-    protocols:
-      - tcp
-      - http
 dependencies:
-  bitcoind:
-    version: ">=0.21.1.2 <=23.0.0"
+  filebrowser:
+    version: "^2.14.1.1"
+    description: Used to upload files to serve.
     requirement:
-    requirement:
-      type: "opt-out"
-      how: Can alternatively configure proxy or bitcoin core  node.
-    description: Used to timestamp squeaks and validate squeaks.
-    config:
-      check:
-        type: docker
-        image: compat
-        system: true
-        entrypoint: compat
-        args:
-          - dependency
-          - check
-          - "squeaknode"
-          - bitcoind
-          - /root
-          - "/mnt/assets/bitcoind_config_rules.yaml"
-        mounts:
-          compat: /mnt/assets
-          main: /root
-        io-format: yaml
-      auto-configure:
-        type: docker
-        image: compat
-        system: true
-        entrypoint: compat
-        args:
-          - dependency
-          - "auto-configure"
-          - "squeaknode"
-          - bitcoind
-          - /root
-          - "/mnt/assets/bitcoind_config_rules.yaml"
-        mounts:
-          compat: /mnt/assets
-          main: /root
-        io-format: yaml
-  btc-rpc-proxy:
-    version: ">=0.3.2.1 <0.4.0"
-    requirement:
-      type: "opt-in"
-      how: Can alternatively configure proxy or bitcoin core  node.
-    description: Used for RPC permissioning.
-    config:
-      check:
-        type: docker
-        image: compat
-        system: true
-        entrypoint: compat
-        args:
-          - dependency
-          - check
-          - squeaknode
-          - "btc-rpc-proxy"
-          - /root
-          - "/mnt/assets/btc-rpc-proxy_config_rules.yaml"
-        mounts:
-          main: /root
-          compat: /mnt/assets
-        io-format: yaml
-      auto-configure:
-        type: docker
-        image: compat
-        system: true
-        entrypoint: compat
-        args:
-          - dependency
-          - "auto-configure"
-          - squeaknode
-          - "btc-rpc-proxy"
-          - /root
-          - "/mnt/assets/btc-rpc-proxy_config_rules.yaml"
-        mounts:
-          main: /root
-          compat: /mnt/assets
-        io-format: yaml
+      type: required
+    config: ~
   lnd:
     version: ">=0.11.1 <0.14.0"
     description: Used to communicate with the Lightning Network.
