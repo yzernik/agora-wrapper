@@ -7,7 +7,7 @@ COPY agora ./
 
 RUN cargo build --release
 
-FROM --platform=linux/arm64/v8 rust:1.59.0-buster
+FROM --platform=linux/arm64/v8 debian:buster-slim
 
 COPY --from=builder /app/target/release/agora /usr/local/bin/agora
 
