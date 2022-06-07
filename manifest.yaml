@@ -88,7 +88,7 @@ volumes:
     package-id: filebrowser
     volume-id: main
     path: /data
-    readonly: true
+    readonly: false
   lnd:
     type: pointer
     package-id: lnd
