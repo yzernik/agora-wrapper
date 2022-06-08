@@ -7,9 +7,8 @@ LND_RPC_AUTHORITY="lnd.embassy:10009"
 TLS_CERT_PATH="/mnt/lnd/tls.cert"
 INVOICES_MACAROON_PATH="/mnt/lnd/data/chain/bitcoin/mainnet/invoice.macaroon"
 
-# Creating duplicate directory for the lnd macaroon files
-mkdir -p /mnt/lnd/data/chain/bitcoin/mainnet
-cp /mnt/lnd/*.macaroon /mnt/lnd/data/chain/bitcoin/mainnet
+# Create directory for the agora files
+mkdir -p /mnt/filebrowser/${FILES_DIR}
 
 # Starting Agora process
 echo "starting agora..."
