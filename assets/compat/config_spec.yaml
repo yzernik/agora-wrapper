@@ -29,5 +29,5 @@ price:
   warning: null
   units: satoshis
   description: The amount of satoshis users will pay per each file you host on Agora.
+#  placeholder: Enter amount
   default: 500
-  placeholder: Enter amount
