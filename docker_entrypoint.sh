@@ -10,6 +10,17 @@ INVOICES_MACAROON_PATH="/mnt/lnd/data/chain/bitcoin/mainnet/invoice.macaroon"
 # Create directory for the agora files
 mkdir -p /mnt/filebrowser/${FILES_DIR}
 
+# Create sample .agora.yaml config file
+if [ ! -e "/mnt/filebrowser/${FILES_DIR}/.agora.yaml" ] ; then
+    cat >> "/mnt/filebrowser/${FILES_DIR}/.agora.yaml" <<"AGR"
+# whether or not to charge for files
+paid: true
+# price for files in satoshis
+base-price: 500 sat
+AGR
+echo "Agora config file created"
+fi
+
 # Starting Agora process
 echo "starting agora..."
 exec agora \
