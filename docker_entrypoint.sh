@@ -20,14 +20,16 @@ paid: true
 # price for files in satoshis
 base-price: 500 sat
 AGR
-sed -i "s/paid:.*/paid: ${PAYMENT}/g" /mnt/filebrowser/Agora-Test/Satoshi/.agora.yaml
-sed -i "s/base-price:.*/base-price: ${PRICE} sat/g" /mnt/filebrowser/Agora-Test/Satoshi/.agora.yaml
 echo "Agora config file created"
 fi
 
+echo "Updating config ..."
+sed -i "s/paid:.*/paid: ${PAYMENT}/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
+sed -i "s/base-price:.*/base-price: ${PRICE} sat/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
+
 # Starting Agora process
 echo "starting agora..."
-exec agora \
+exec tini -p SIGTERM -- agora \
      --directory "/mnt/filebrowser/${FILES_DIR}" \
      --http-port $AGORA_PORT \
      --lnd-rpc-authority $LND_RPC_AUTHORITY \
