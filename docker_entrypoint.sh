@@ -28,7 +28,7 @@ sed -i "s/paid:.*/paid: ${PAYMENT}/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
 sed -i "s/base-price:.*/base-price: ${PRICE} sat/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
 
 # Starting Agora process
-echo "starting agora..."
+echo "Starting agora ..."
 exec tini -p SIGTERM -- agora \
      --directory "/mnt/filebrowser/${FILES_DIR}" \
      --http-port $AGORA_PORT \
