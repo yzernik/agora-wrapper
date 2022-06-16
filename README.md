@@ -7,7 +7,6 @@ This project wraps the [Agora](https://github.com/agora-org/agora) app for Embas
 - [docker](https://docs.docker.com/get-docker)
 - [docker-buildx](https://docs.docker.com/buildx/working-with-buildx/)
 - [yq](https://mikefarah.gitbook.io/yq)
-- [toml](https://crates.io/crates/toml-cli)
 - [make](https://www.gnu.org/software/make/)
 
 ## Cloning
