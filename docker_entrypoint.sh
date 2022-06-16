@@ -10,7 +10,7 @@ PAYMENT=$(yq e '.payments' /root/start9/config.yaml)
 PRICE=$(yq e '.price' /root/start9/config.yaml)
 
 # Create directory for the agora files
-mkdir -p /mnt/filebrowser/${FILES_DIR}
+mkdir -p "/mnt/filebrowser/${FILES_DIR}"
 
 # Create sample .agora.yaml config file
 if [ ! -e "/mnt/filebrowser/${FILES_DIR}/.agora.yaml" ] ; then
@@ -24,8 +24,8 @@ echo "Agora config file created"
 fi
 
 echo "Updating config ..."
-sed -i "s/paid:.*/paid: ${PAYMENT}/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
-sed -i "s/base-price:.*/base-price: ${PRICE} sat/g" /mnt/filebrowser/${FILES_DIR}/.agora.yaml
+sed -i "s/paid:.*/paid: ${PAYMENT}/g" "/mnt/filebrowser/${FILES_DIR}/.agora.yaml"
+sed -i "s/base-price:.*/base-price: ${PRICE} sat/g" "/mnt/filebrowser/${FILES_DIR}/.agora.yaml"
 
 # Starting Agora process
 echo "Starting agora ..."
