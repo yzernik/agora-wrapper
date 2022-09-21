@@ -1,23 +1,28 @@
-EMVER := $(shell yq e ".version" manifest.yaml)
-AGORA_SRC := $(shell find ./agora)
-S9PK_PATH=$(shell find . -name agora.s9pk -print)
+ID_NAME := $(shell yq e ".id" manifest.yaml)
+VERSION := $(shell yq e ".version" manifest.yaml)
+TS_FILES := $(shell find ./ -name \*.ts)
 
+# delete the target of a rule if it has changed and its recipe exits with a nonzero exit status
 .DELETE_ON_ERROR:
 
 all: verify
 
-verify: agora.s9pk $(S9PK_PATH)
-	embassy-sdk verify s9pk $(S9PK_PATH)
+install: all
+	embassy-cli package install $(ID_NAME).s9pk
 
-install: agora.s9pk
-	embassy-cli package install agora.s9pk
-
-agora.s9pk: manifest.yaml assets/* image.tar docs/instructions.md LICENSE icon.png
-	embassy-sdk pack
-
-image.tar: Dockerfile docker_entrypoint.sh assets/utils/*
-	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --tag start9/agora/main:${EMVER}	--platform=linux/arm64/v8 -f Dockerfile -o type=docker,dest=image.tar .
+verify: $(ID_NAME).s9pk
+	embassy-sdk verify s9pk $(ID_NAME).s9pk
 
 clean:
-	rm -f agora.s9pk
 	rm -f image.tar
+	rm -f $(ID_NAME).s9pk
+	rm -f scripts/*.js
+
+$(ID_NAME).s9pk: manifest.yaml docs/instructions.md scripts/*.sh icon.png LICENSE scripts/embassy.js image.tar
+	embassy-sdk pack
+
+image.tar: Dockerfile docker_entrypoint.sh scripts/*.sh 
+	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --tag start9/$(ID_NAME)/main:$(VERSION) --platform=linux/arm64/v8 -o type=docker,dest=image.tar -f ./Dockerfile .
+
+scripts/embassy.js: $(TS_FILES)
+	deno bundle scripts/embassy.ts scripts/embassy.js

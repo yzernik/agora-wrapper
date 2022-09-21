@@ -1,7 +1,9 @@
 id: agora
 title: Agora
 version: 0.1.2.1
-release-notes: Added LND v0.15.0 compatability
+release-notes: | 
+  * Added LND v0.15.0 compatability
+  * Added CLN v0.12.0 compatability
 license: mit
 wrapper-repo: "https://github.com/yzernik/agora-wrapper"
 upstream-repo: "https://github.com/agora-org/agora"
@@ -25,6 +27,7 @@ main:
     main: /root
     compat: /mnt/assets
     lnd: /mnt/lnd
+    c-lightning: /mnt/c-lightning
     filebrowser: /mnt/filebrowser
   io-format: yaml
 health-checks:
@@ -39,45 +42,11 @@ health-checks:
     inject: true
 config:
   get:
-    type: docker
-    image: compat
-    system: true
-    entrypoint: compat
-    args:
-      - config
-      - get
-      - /root
-      - /mnt/assets/config_spec.yaml
-    mounts:
-      main: /root
-      compat: /mnt/assets
-    io-format: yaml
+    type: script
   set:
-    type: docker
-    image: compat
-    system: true
-    entrypoint: compat
-    args:
-      - config
-      - set
-      - agora
-      - /root
-      - /mnt/assets/config_rules.yaml
-    mounts:
-      main: /root
-      compat: /mnt/assets
-    io-format: yaml
+    type: script
 properties:
-  type: docker
-  image: compat
-  system: true
-  entrypoint: compat
-  args:
-    - properties
-    - /root
-  mounts:
-    main: /root
-  io-format: yaml
+  type: script
 volumes:
   main:
     type: data
@@ -95,6 +64,12 @@ volumes:
     volume-id: main
     path: /public
     readonly: false
+  c-lightning:
+    type: pointer
+    package-id: c-lightning
+    volume-id: main
+    path: /shared
+    readonly: true
 interfaces:
   main:
     name: Browser Interface
@@ -114,10 +89,18 @@ dependencies:
       type: required
     config: ~
   lnd:
-    version: ">=0.11.1 <0.16.0"
+    version: ">=0.14.3 <0.16.0"
     description: Used to communicate with the Lightning Network.
     requirement:
-      type: required
+      type: "opt-in"
+      how: Use the LND instance by default
+    config: ~
+  c-lightning:
+    version: ">=0.10.1 <0.14.0"
+    description: Used to communicate with the Lightning Network.
+    requirement:
+      type: "opt-in"
+      how: Can opt to use the CLN instance instead of LND
     config: ~
 backup:
   create:
@@ -146,3 +129,12 @@ backup:
     mounts:
       BACKUP: "/mnt/backup"
       main: "/root/data"
+migrations:
+  from:
+    "*":
+      type: script
+      args: ["from"]
+  to:
+    "*":
+      type: script
+      args: ["to"]
