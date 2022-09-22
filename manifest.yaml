@@ -25,21 +25,15 @@ main:
   args: []
   mounts:
     main: /root
-    compat: /mnt/assets
     lnd: /mnt/lnd
     c-lightning: /mnt/c-lightning
     filebrowser: /mnt/filebrowser
   io-format: yaml
 health-checks:
-  main:
+  web-ui:
     name: Web Interface
-    success-message: The Agora UI is ready to visit in a web browser
-    type: docker
-    image: main
-    entrypoint: health-check.sh
-    args: []
-    io-format: json
-    inject: true
+    success-message: The Agora UI is accessible.
+    type: script
 config:
   get:
     type: script
@@ -50,8 +44,6 @@ properties:
 volumes:
   main:
     type: data
-  compat:
-    type: assets
   filebrowser:
     type: pointer
     package-id: filebrowser

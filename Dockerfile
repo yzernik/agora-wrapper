@@ -13,7 +13,7 @@ COPY --from=builder /app/target/release/agora /usr/local/bin/agora
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 	apt-get install -y \
-	iproute2 wget curl tini bash
+	iproute2 wget curl tini
 
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.12.2/yq_linux_arm.tar.gz -O - |\
     tar xz && mv yq_linux_arm /usr/bin/yq
@@ -22,6 +22,5 @@ EXPOSE 80
 EXPOSE 8080
 
 ADD ./docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
-ADD scripts/health-check.sh /usr/local/bin/health-check.sh
-RUN chmod +x /usr/local/bin/*.sh
+RUN chmod +x /usr/local/bin/docker_entrypoint.sh
 

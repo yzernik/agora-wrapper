@@ -1251,7 +1251,7 @@ class Buffer {
         this.#reslice(0);
         this.#off = 0;
     }
-     #tryGrowByReslice(n) {
+    #tryGrowByReslice(n) {
         const l = this.#buf.byteLength;
         if (n <= this.capacity - l) {
             this.#reslice(l + n);
@@ -1259,7 +1259,7 @@ class Buffer {
         }
         return -1;
     }
-     #reslice(len) {
+    #reslice(len) {
         assert(len <= this.#buf.buffer.byteLength);
         this.#buf = new Uint8Array(this.#buf.buffer, 0, len);
     }
@@ -1287,7 +1287,7 @@ class Buffer {
         const n = this.writeSync(p);
         return Promise.resolve(n);
     }
-     #grow(n1) {
+    #grow(n1) {
         const m = this.length;
         if (m === 0 && this.#off !== 0) {
             this.reset();
@@ -1348,411 +1348,8 @@ class Buffer {
         }
     }
 }
-const MIN_BUF_SIZE = 16;
-const CR = "\r".charCodeAt(0);
-const LF = "\n".charCodeAt(0);
-class BufferFullError extends Error {
-    name;
-    constructor(partial){
-        super("Buffer full");
-        this.partial = partial;
-        this.name = "BufferFullError";
-    }
-    partial;
-}
-class PartialReadError extends Error {
-    name = "PartialReadError";
-    partial;
-    constructor(){
-        super("Encountered UnexpectedEof, data only partially read");
-    }
-}
-class BufReader {
-    #buf;
-    #rd;
-    #r = 0;
-    #w = 0;
-    #eof = false;
-    static create(r, size = 4096) {
-        return r instanceof BufReader ? r : new BufReader(r, size);
-    }
-    constructor(rd, size = 4096){
-        if (size < 16) {
-            size = MIN_BUF_SIZE;
-        }
-        this.#reset(new Uint8Array(size), rd);
-    }
-    size() {
-        return this.#buf.byteLength;
-    }
-    buffered() {
-        return this.#w - this.#r;
-    }
-    #fill = async ()=>{
-        if (this.#r > 0) {
-            this.#buf.copyWithin(0, this.#r, this.#w);
-            this.#w -= this.#r;
-            this.#r = 0;
-        }
-        if (this.#w >= this.#buf.byteLength) {
-            throw Error("bufio: tried to fill full buffer");
-        }
-        for(let i = 100; i > 0; i--){
-            const rr = await this.#rd.read(this.#buf.subarray(this.#w));
-            if (rr === null) {
-                this.#eof = true;
-                return;
-            }
-            assert(rr >= 0, "negative read");
-            this.#w += rr;
-            if (rr > 0) {
-                return;
-            }
-        }
-        throw new Error(`No progress after ${100} read() calls`);
-    };
-    reset(r) {
-        this.#reset(this.#buf, r);
-    }
-    #reset = (buf, rd)=>{
-        this.#buf = buf;
-        this.#rd = rd;
-        this.#eof = false;
-    };
-    async read(p) {
-        let rr = p.byteLength;
-        if (p.byteLength === 0) return rr;
-        if (this.#r === this.#w) {
-            if (p.byteLength >= this.#buf.byteLength) {
-                const rr1 = await this.#rd.read(p);
-                const nread = rr1 ?? 0;
-                assert(nread >= 0, "negative read");
-                return rr1;
-            }
-            this.#r = 0;
-            this.#w = 0;
-            rr = await this.#rd.read(this.#buf);
-            if (rr === 0 || rr === null) return rr;
-            assert(rr >= 0, "negative read");
-            this.#w += rr;
-        }
-        const copied = copy(this.#buf.subarray(this.#r, this.#w), p, 0);
-        this.#r += copied;
-        return copied;
-    }
-    async readFull(p) {
-        let bytesRead = 0;
-        while(bytesRead < p.length){
-            try {
-                const rr = await this.read(p.subarray(bytesRead));
-                if (rr === null) {
-                    if (bytesRead === 0) {
-                        return null;
-                    } else {
-                        throw new PartialReadError();
-                    }
-                }
-                bytesRead += rr;
-            } catch (err) {
-                if (err instanceof PartialReadError) {
-                    err.partial = p.subarray(0, bytesRead);
-                } else if (err instanceof Error) {
-                    const e = new PartialReadError();
-                    e.partial = p.subarray(0, bytesRead);
-                    e.stack = err.stack;
-                    e.message = err.message;
-                    e.cause = err.cause;
-                    throw err;
-                }
-                throw err;
-            }
-        }
-        return p;
-    }
-    async readByte() {
-        while(this.#r === this.#w){
-            if (this.#eof) return null;
-            await this.#fill();
-        }
-        const c = this.#buf[this.#r];
-        this.#r++;
-        return c;
-    }
-    async readString(delim) {
-        if (delim.length !== 1) {
-            throw new Error("Delimiter should be a single character");
-        }
-        const buffer = await this.readSlice(delim.charCodeAt(0));
-        if (buffer === null) return null;
-        return new TextDecoder().decode(buffer);
-    }
-    async readLine() {
-        let line = null;
-        try {
-            line = await this.readSlice(LF);
-        } catch (err) {
-            if (err instanceof Deno.errors.BadResource) {
-                throw err;
-            }
-            let partial;
-            if (err instanceof PartialReadError) {
-                partial = err.partial;
-                assert(partial instanceof Uint8Array, "bufio: caught error from `readSlice()` without `partial` property");
-            }
-            if (!(err instanceof BufferFullError)) {
-                throw err;
-            }
-            partial = err.partial;
-            if (!this.#eof && partial && partial.byteLength > 0 && partial[partial.byteLength - 1] === CR) {
-                assert(this.#r > 0, "bufio: tried to rewind past start of buffer");
-                this.#r--;
-                partial = partial.subarray(0, partial.byteLength - 1);
-            }
-            if (partial) {
-                return {
-                    line: partial,
-                    more: !this.#eof
-                };
-            }
-        }
-        if (line === null) {
-            return null;
-        }
-        if (line.byteLength === 0) {
-            return {
-                line,
-                more: false
-            };
-        }
-        if (line[line.byteLength - 1] == LF) {
-            let drop = 1;
-            if (line.byteLength > 1 && line[line.byteLength - 2] === CR) {
-                drop = 2;
-            }
-            line = line.subarray(0, line.byteLength - drop);
-        }
-        return {
-            line,
-            more: false
-        };
-    }
-    async readSlice(delim) {
-        let s = 0;
-        let slice;
-        while(true){
-            let i = this.#buf.subarray(this.#r + s, this.#w).indexOf(delim);
-            if (i >= 0) {
-                i += s;
-                slice = this.#buf.subarray(this.#r, this.#r + i + 1);
-                this.#r += i + 1;
-                break;
-            }
-            if (this.#eof) {
-                if (this.#r === this.#w) {
-                    return null;
-                }
-                slice = this.#buf.subarray(this.#r, this.#w);
-                this.#r = this.#w;
-                break;
-            }
-            if (this.buffered() >= this.#buf.byteLength) {
-                this.#r = this.#w;
-                const oldbuf = this.#buf;
-                const newbuf = this.#buf.slice(0);
-                this.#buf = newbuf;
-                throw new BufferFullError(oldbuf);
-            }
-            s = this.#w - this.#r;
-            try {
-                await this.#fill();
-            } catch (err) {
-                if (err instanceof PartialReadError) {
-                    err.partial = slice;
-                } else if (err instanceof Error) {
-                    const e = new PartialReadError();
-                    e.partial = slice;
-                    e.stack = err.stack;
-                    e.message = err.message;
-                    e.cause = err.cause;
-                    throw err;
-                }
-                throw err;
-            }
-        }
-        return slice;
-    }
-    async peek(n) {
-        if (n < 0) {
-            throw Error("negative count");
-        }
-        let avail = this.#w - this.#r;
-        while(avail < n && avail < this.#buf.byteLength && !this.#eof){
-            try {
-                await this.#fill();
-            } catch (err) {
-                if (err instanceof PartialReadError) {
-                    err.partial = this.#buf.subarray(this.#r, this.#w);
-                } else if (err instanceof Error) {
-                    const e = new PartialReadError();
-                    e.partial = this.#buf.subarray(this.#r, this.#w);
-                    e.stack = err.stack;
-                    e.message = err.message;
-                    e.cause = err.cause;
-                    throw err;
-                }
-                throw err;
-            }
-            avail = this.#w - this.#r;
-        }
-        if (avail === 0 && this.#eof) {
-            return null;
-        } else if (avail < n && this.#eof) {
-            return this.#buf.subarray(this.#r, this.#r + avail);
-        } else if (avail < n) {
-            throw new BufferFullError(this.#buf.subarray(this.#r, this.#w));
-        }
-        return this.#buf.subarray(this.#r, this.#r + n);
-    }
-}
-class AbstractBufBase {
-    buf;
-    usedBufferBytes = 0;
-    err = null;
-    constructor(buf){
-        this.buf = buf;
-    }
-    size() {
-        return this.buf.byteLength;
-    }
-    available() {
-        return this.buf.byteLength - this.usedBufferBytes;
-    }
-    buffered() {
-        return this.usedBufferBytes;
-    }
-}
-class BufWriter extends AbstractBufBase {
-    #writer;
-    static create(writer, size = 4096) {
-        return writer instanceof BufWriter ? writer : new BufWriter(writer, size);
-    }
-    constructor(writer, size = 4096){
-        super(new Uint8Array(size <= 0 ? 4096 : size));
-        this.#writer = writer;
-    }
-    reset(w) {
-        this.err = null;
-        this.usedBufferBytes = 0;
-        this.#writer = w;
-    }
-    async flush() {
-        if (this.err !== null) throw this.err;
-        if (this.usedBufferBytes === 0) return;
-        try {
-            const p = this.buf.subarray(0, this.usedBufferBytes);
-            let nwritten = 0;
-            while(nwritten < p.length){
-                nwritten += await this.#writer.write(p.subarray(nwritten));
-            }
-        } catch (e) {
-            if (e instanceof Error) {
-                this.err = e;
-            }
-            throw e;
-        }
-        this.buf = new Uint8Array(this.buf.length);
-        this.usedBufferBytes = 0;
-    }
-    async write(data) {
-        if (this.err !== null) throw this.err;
-        if (data.length === 0) return 0;
-        let totalBytesWritten = 0;
-        let numBytesWritten = 0;
-        while(data.byteLength > this.available()){
-            if (this.buffered() === 0) {
-                try {
-                    numBytesWritten = await this.#writer.write(data);
-                } catch (e) {
-                    if (e instanceof Error) {
-                        this.err = e;
-                    }
-                    throw e;
-                }
-            } else {
-                numBytesWritten = copy(data, this.buf, this.usedBufferBytes);
-                this.usedBufferBytes += numBytesWritten;
-                await this.flush();
-            }
-            totalBytesWritten += numBytesWritten;
-            data = data.subarray(numBytesWritten);
-        }
-        numBytesWritten = copy(data, this.buf, this.usedBufferBytes);
-        this.usedBufferBytes += numBytesWritten;
-        totalBytesWritten += numBytesWritten;
-        return totalBytesWritten;
-    }
-}
-class BufWriterSync extends AbstractBufBase {
-    #writer;
-    static create(writer, size = 4096) {
-        return writer instanceof BufWriterSync ? writer : new BufWriterSync(writer, size);
-    }
-    constructor(writer, size = 4096){
-        super(new Uint8Array(size <= 0 ? 4096 : size));
-        this.#writer = writer;
-    }
-    reset(w) {
-        this.err = null;
-        this.usedBufferBytes = 0;
-        this.#writer = w;
-    }
-    flush() {
-        if (this.err !== null) throw this.err;
-        if (this.usedBufferBytes === 0) return;
-        try {
-            const p = this.buf.subarray(0, this.usedBufferBytes);
-            let nwritten = 0;
-            while(nwritten < p.length){
-                nwritten += this.#writer.writeSync(p.subarray(nwritten));
-            }
-        } catch (e) {
-            if (e instanceof Error) {
-                this.err = e;
-            }
-            throw e;
-        }
-        this.buf = new Uint8Array(this.buf.length);
-        this.usedBufferBytes = 0;
-    }
-    writeSync(data) {
-        if (this.err !== null) throw this.err;
-        if (data.length === 0) return 0;
-        let totalBytesWritten = 0;
-        let numBytesWritten = 0;
-        while(data.byteLength > this.available()){
-            if (this.buffered() === 0) {
-                try {
-                    numBytesWritten = this.#writer.writeSync(data);
-                } catch (e) {
-                    if (e instanceof Error) {
-                        this.err = e;
-                    }
-                    throw e;
-                }
-            } else {
-                numBytesWritten = copy(data, this.buf, this.usedBufferBytes);
-                this.usedBufferBytes += numBytesWritten;
-                this.flush();
-            }
-            totalBytesWritten += numBytesWritten;
-            data = data.subarray(numBytesWritten);
-        }
-        numBytesWritten = copy(data, this.buf, this.usedBufferBytes);
-        this.usedBufferBytes += numBytesWritten;
-        totalBytesWritten += numBytesWritten;
-        return totalBytesWritten;
-    }
-}
+"\r".charCodeAt(0);
+"\n".charCodeAt(0);
 const BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r";
 function resolveYamlBinary(data) {
     if (data === null) return false;
@@ -4056,27 +3653,12 @@ const mod1 = {
     FAILSAFE_SCHEMA: failsafe,
     JSON_SCHEMA: json
 };
-const starSub = /((\d+\.)*\d+)\.\*/;
 function incrementLastNumber(list) {
     const newList = [
         ...list
     ];
     newList[newList.length - 1]++;
     return newList;
-}
-function rangeAnd(...ranges) {
-    if (ranges.length === 0) {
-        throw new Error("No ranges given");
-    }
-    const [firstCheck, ...rest] = ranges;
-    return Checker.parse(firstCheck).and(...rest);
-}
-function rangeOr(...ranges) {
-    if (ranges.length === 0) {
-        throw new Error("No ranges given");
-    }
-    const [firstCheck, ...rest] = ranges;
-    return Checker.parse(firstCheck).or(...rest);
 }
 class EmVer {
     static from(range) {
@@ -4147,117 +3729,6 @@ class EmVer {
         return mod.matches(this.compare(other)).when("equal", ()=>0).when("greater", ()=>1).when("less", ()=>-1).unwrap();
     }
     values;
-}
-class Checker {
-    static parse(range) {
-        if (range instanceof Checker) {
-            return range;
-        }
-        range = range.trim();
-        if (range.indexOf("||") !== -1) {
-            return rangeOr(...range.split("||").map((x)=>Checker.parse(x)));
-        }
-        if (range.indexOf("&&") !== -1) {
-            return rangeAnd(...range.split("&&").map((x)=>Checker.parse(x)));
-        }
-        if (range === "*") {
-            return new Checker((version)=>{
-                EmVer.from(version);
-                return true;
-            });
-        }
-        if (range.startsWith("!")) {
-            return Checker.parse(range.substring(1)).not();
-        }
-        const starSubMatches = starSub.exec(range);
-        if (starSubMatches != null) {
-            const emVarLower = EmVer.parse(starSubMatches[1]);
-            const emVarUpper = emVarLower.withLastIncremented();
-            return new Checker((version)=>{
-                const v = EmVer.from(version);
-                return (v.greaterThan(emVarLower) || v.equals(emVarLower)) && !v.greaterThan(emVarUpper) && !v.equals(emVarUpper);
-            });
-        }
-        switch(range.substring(0, 2)){
-            case ">=":
-                {
-                    const emVar = EmVer.parse(range.substring(2));
-                    return new Checker((version)=>{
-                        const v = EmVer.from(version);
-                        return v.greaterThanOrEqual(emVar);
-                    });
-                }
-            case "<=":
-                {
-                    const emVar1 = EmVer.parse(range.substring(2));
-                    return new Checker((version)=>{
-                        const v = EmVer.from(version);
-                        return v.lessThanOrEqual(emVar1);
-                    });
-                }
-        }
-        switch(range.substring(0, 1)){
-            case ">":
-                {
-                    console.log("greaterThan");
-                    const emVar2 = EmVer.parse(range.substring(1));
-                    return new Checker((version)=>{
-                        const v = EmVer.from(version);
-                        return v.greaterThan(emVar2);
-                    });
-                }
-            case "<":
-                {
-                    const emVar3 = EmVer.parse(range.substring(1));
-                    return new Checker((version)=>{
-                        const v = EmVer.from(version);
-                        return v.lessThan(emVar3);
-                    });
-                }
-            case "=":
-                {
-                    const emVar4 = EmVer.parse(range.substring(1));
-                    return new Checker((version)=>{
-                        const v = EmVer.from(version);
-                        return v.equals(emVar4);
-                    });
-                }
-        }
-        throw new Error("Couldn't parse range: " + range);
-    }
-    constructor(check){
-        this.check = check;
-    }
-    and(...others) {
-        return new Checker((value)=>{
-            if (!this.check(value)) {
-                return false;
-            }
-            for (const other of others){
-                if (!Checker.parse(other).check(value)) {
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-    or(...others) {
-        return new Checker((value)=>{
-            if (this.check(value)) {
-                return true;
-            }
-            for (const other of others){
-                if (Checker.parse(other).check(value)) {
-                    return true;
-                }
-            }
-            return false;
-        });
-    }
-    not() {
-        return new Checker((value)=>!this.check(value));
-    }
-    check;
 }
 function migrationFn(fn) {
     return fn;
@@ -4372,7 +3843,7 @@ function updateConfig(fn, configured, noRepeat, noFail = false) {
             let config = unwrapResultType(await getConfig({})(effects)).config;
             if (config) {
                 try {
-                    config = fn(config, effects);
+                    config = await fn(config, effects);
                 } catch (e) {
                     if (!noFail) {
                         throw e;
@@ -4531,7 +4002,33 @@ const getConfig1 = mod3.getConfig({
     }
 });
 const migration = mod3.migrations.fromMapping({}, "0.1.2.1");
+const health = {
+    async "web-ui" (effects, duration) {
+        return healthWeb(effects, duration);
+    }
+};
+const healthWeb = async (effects, duration)=>{
+    await guardDurationAboveMinimum({
+        duration,
+        minimumTime: 5000
+    });
+    return await effects.fetch("http://agora.embassy:8080").then((_)=>ok).catch((e)=>error(e));
+};
+const guardDurationAboveMinimum = (input)=>input.duration <= input.minimumTime ? Promise.reject(errorCode(60, "Starting")) : null;
+const errorCode = (code, error)=>({
+        "error-code": [
+            code,
+            error
+        ]
+    });
+const error = (error)=>({
+        error
+    });
+const ok = {
+    result: null
+};
 export { setConfig1 as setConfig };
 export { properties1 as properties };
 export { getConfig1 as getConfig };
 export { migration as migration };
+export { health as health };
