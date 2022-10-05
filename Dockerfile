@@ -18,9 +18,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.12.2/yq_linux_arm.tar.gz -O - |\
     tar xz && mv yq_linux_arm /usr/bin/yq
 
-EXPOSE 80
-EXPOSE 8080
-
 ADD ./docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
 RUN chmod +x /usr/local/bin/docker_entrypoint.sh
 
