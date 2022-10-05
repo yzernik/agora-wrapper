@@ -23,6 +23,9 @@ paid: true
 base-price: 500 sat
 AGR
 echo "Agora config file created"
+    cat >> "/mnt/filebrowser/${FILES_DIR}/welcome-to-agora.txt" <<"AGR"
+This is a sample file, located inside File Browser in your chosen Agora folder. Other files added to this folder will also appear here.
+AGR
 fi
 
 echo "Updating config ..."
