@@ -69,6 +69,10 @@ interfaces:
     tor-config:
       port-mapping:
         80: "8080"
+    lan-config:
+      443:
+        ssl: true
+        internal: 8080
     ui: true
     protocols:
       - tcp
