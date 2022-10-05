@@ -2,10 +2,15 @@
 set -e
 
 AGORA_PORT=8080
+LND_RPC_AUTHORITY="lnd.embassy:10009"
+TLS_CERT_PATH="/mnt/lnd/tls.cert"
+INVOICES_MACAROON_PATH="/mnt/lnd/invoice.macaroon"
+CORE_LIGHTNING_RPC_PATH="/mnt/c-lightning/lightning-rpc"
 FILES_DIR=$(yq e '.directory' /root/start9/config.yaml)
-PAYMENT=$(yq e '.payments' /root/start9/config.yaml)
-PRICE=$(yq e '.price' /root/start9/config.yaml)
-WALLET=$(yq e '.wallet.type' /root/start9/config.yaml)
+WALLET=$(yq e '.lightning.wallet' /root/start9/config.yaml)
+PAYMENT=$(yq e '.lightning.payments' /root/start9/config.yaml)
+PRICE=$(yq e '.lightning.price' /root/start9/config.yaml)
+
 # Create directory for the agora files
 mkdir -p "/mnt/filebrowser/${FILES_DIR}"
 # Create sample .agora.yaml config file
@@ -17,6 +22,9 @@ paid: true
 base-price: 500 sat
 AGR
 echo "Agora config file created"
+    cat >> "/mnt/filebrowser/${FILES_DIR}/welcome-to-agora.txt" <<"AGR"
+This is a sample file, located inside File Browser in your chosen Agora folder. Other files added to this folder will also appear here.
+AGR
 fi
 echo "Updating config ..."
 sed -i "s/paid:.*/paid: ${PAYMENT}/g" "/mnt/filebrowser/${FILES_DIR}/.agora.yaml"
