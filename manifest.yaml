@@ -1,9 +1,9 @@
 id: agora
 title: Agora
-version: 0.1.2.1
-release-notes: | 
-  * Added LND v0.15.0 compatability
-  * Added CLN v0.12.0 compatability
+version: 0.1.2.3
+release-notes: |
+  Initial release for embassyOS
+  * With support for both LND and CLN
 license: mit
 wrapper-repo: "https://github.com/yzernik/agora-wrapper"
 upstream-repo: "https://github.com/agora-org/agora"
@@ -81,14 +81,14 @@ dependencies:
       type: required
     config: ~
   lnd:
-    version: ">=0.14.3 <0.16.0"
+    version: ">=0.14.2"
     description: Used to communicate with the Lightning Network.
     requirement:
       type: "opt-in"
       how: Use the LND instance by default
     config: ~
   c-lightning:
-    version: ">=0.10.1 <0.14.0"
+    version: ">=0.11.1"
     description: Used to communicate with the Lightning Network.
     requirement:
       type: "opt-in"

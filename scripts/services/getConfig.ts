@@ -19,40 +19,43 @@ export const getConfig: T.ExpectedExports.getConfig = compat.getConfig({
      "nullable": false,
      "default": "agora-files"
   },
-  "payments": {
-     "type": "boolean",
-     "name": "Enable Lightning Network payments",
-     "description": "Decide whether to charge for files via Lightning or make them freely available.",
-     "default": true
-  },
-  "price": {
-     "type": "number",
-     "name": "Price for files in satoshis",
-     "nullable": false,
-     "range": "[1,10000000]",
-     "integral": true,
-     "units": "satoshis",
-     "description": "The amount of satoshis users will pay per each file you host on Agora.",
-     "default": 500
-  },
-  "wallet": {
-    "type": "union",
-    "name": "Connection Settings",
-    "description": "Connection Settings",
-    "tag": {
-        "id": "type",
-        "name": "Select Lightning Node",
-        "variant-names": {
-            "lnd": "Lightning Network Daemon",
-            "cln": "Core Lightning",
-        },
-        "description":
-            "The LN node to connect to",
-        },
-    "default": "lnd",
-    "variants": {
-      "lnd": {},
-      "cln":{},
-    }
-  }
+  "lightning": {
+   "type": "object",
+   "name": "Lightning Settings",
+   "description": "Choose which Lightning implementation you want to use, whether you want to enable payments and for how much, or maybe host files for free.",
+   "spec": {
+      "wallet": {
+         "name": "Select Lightning Node",
+         "description":
+           "Choose which Lightning node you want to use for payments.",
+         "type": "enum",
+         "values": [
+           "lnd",
+           "cln",
+         ],
+         "value-names": {
+           "lnd": "Lightning Network Daemon",
+           "cln": "Core Lightning",
+         },
+         "default": "lnd",
+       },
+       "payments": {
+         "type": "boolean",
+         "name": "Enable payments",
+         "description": "Decide whether to charge for files via Lightning or make them freely available.",
+         "default": true,
+      },
+       "price": {
+         "type": "number",
+         "name": "Price for files in satoshis",
+         "nullable": false,
+         "range": "[1,10000000]",
+         "integral": true,
+         "units": "satoshis",
+         "description": "The amount of satoshis users will pay per each file you host on Agora.",
+         "default": 500
+       },
+       },
+ },
+
 });

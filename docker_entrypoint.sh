@@ -7,9 +7,9 @@ LND_RPC_AUTHORITY="lnd.embassy:10009"
 TLS_CERT_PATH="/mnt/lnd/tls.cert"
 INVOICES_MACAROON_PATH="/mnt/lnd/invoice.macaroon"
 CORE_LIGHTNING_RPC_PATH="/mnt/c-lightning/lightning-rpc"
-PAYMENT=$(yq e '.payments' /root/start9/config.yaml)
-PRICE=$(yq e '.price' /root/start9/config.yaml)
-WALLET=$(yq e '.wallet.type' /root/start9/config.yaml)
+WALLET=$(yq e '.lightning.wallet' /root/start9/config.yaml)
+PAYMENT=$(yq e '.lightning.payments' /root/start9/config.yaml)
+PRICE=$(yq e '.lightning.price' /root/start9/config.yaml)
 
 # Create directory for the agora files
 mkdir -p "/mnt/filebrowser/${FILES_DIR}"
