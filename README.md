@@ -67,9 +67,10 @@ cd agora-wrapper
 
 ## Building
 
-To build the **agora** service, run the following command:
+To build the **agora** service, run the following commands:
 
 ```
+git submodule update --init --recursive
 make
 ```
 
