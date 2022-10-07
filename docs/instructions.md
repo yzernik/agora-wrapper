@@ -8,7 +8,7 @@ You can let people view your files for free, or require them to pay you in Bitco
 
 ## Config
 
-Decide which folder in File Browser will be used, choose your preferred lightning implementation (LND or CLN), and set your default price for file downloads. Your chosen directory is automatically created inside File Browser, along with a sample file for testing.
+Decide which directory in File Browser will be used, choose your preferred lightning implementation (LND or CLN), and set your default price for file downloads. Your chosen directory is automatically created inside File Browser, along with a sample file for testing.
 
 ## Adding new files
 
