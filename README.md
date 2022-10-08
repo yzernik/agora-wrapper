@@ -54,6 +54,10 @@ cd embassy-os/backend/
 ./install-sdk.sh
 embassy-sdk init
 ```
+9. Enable multi-architecture support for AMD/Intel processors.
+```
+[[ $(arch) == *86* ]] && docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
 Now you are ready to build your **agora** service
 
 ## Cloning
@@ -61,7 +65,7 @@ Now you are ready to build your **agora** service
 Clone the project locally. 
 
 ```
-git clone https://github.com/Start9Labs/agora-wrapper.git
+git clone https://github.com/yzernik/agora-wrapper.git
 cd agora-wrapper
 ```
 

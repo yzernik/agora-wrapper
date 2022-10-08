@@ -38,8 +38,7 @@ config:
     type: script
   set:
     type: script
-properties:
-  type: script
+properties: ~
 volumes:
   main:
     type: data
