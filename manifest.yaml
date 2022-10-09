@@ -1,8 +1,9 @@
 id: agora
 title: Agora
-version: 0.1.2
+version: 0.1.2.0
 release-notes: |
   * Initial release for embassyOS with support for both LND and CLN
+  * Smaller and optimized service version
 license: mit
 wrapper-repo: "https://github.com/yzernik/agora-wrapper"
 upstream-repo: "https://github.com/agora-org/agora"
