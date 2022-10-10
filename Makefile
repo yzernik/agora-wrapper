@@ -22,11 +22,11 @@ clean:
 $(ID_NAME).s9pk: manifest.yaml docs/instructions.md icon.png LICENSE scripts/embassy.js image.tar
 	embassy-sdk pack
 
-image.tar: Dockerfile docker_entrypoint.sh agora/target/aarch64-unknown-linux-musl/release/agora
-	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --tag start9/$(ID_NAME)/main:$(VERSION) --platform=linux/arm64/v8 -o type=docker,dest=image.tar -f ./Dockerfile .
+image.tar: Dockerfile docker_entrypoint.sh agora/target/x86_64-unknown-linux-musl/release/agora
+	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --tag start9/$(ID_NAME)/main:$(VERSION) --platform=linux/amd64 -o type=docker,dest=image.tar -f ./Dockerfile .
 
-agora/target/aarch64-unknown-linux-musl/release/agora: $(AGORA_SRC)
-	docker run --rm -it -v ~/.cargo/registry:/root/.cargo/registry -v "$(shell pwd)"/agora:/home/rust/src messense/rust-musl-cross:aarch64-musl cargo build --release
+agora/target/x86_64-unknown-linux-musl/release/agora: $(AGORA_SRC)
+	docker run --rm -it -v ~/.cargo/registry:/root/.cargo/registry -v "$(shell pwd)"/agora:/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --release
 
 scripts/embassy.js: $(TS_FILES)
 	deno bundle scripts/embassy.ts scripts/embassy.js
