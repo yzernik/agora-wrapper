@@ -1,8 +1,10 @@
 id: agora
 title: Agora
-version: 0.1.2.0
+version: 0.1.2.1
 release-notes: |
-  * Initial release for embassyOS with support for both LND and CLN
+  This one is Universal Package aka Fattie
+  * added support for x86_64 and aarch64 architecture
+  * health check fix
   * Smaller and optimized service version
 license: mit
 wrapper-repo: "https://github.com/yzernik/agora-wrapper"
@@ -17,7 +19,7 @@ assets:
   license: LICENSE
   icon: icon.png
   instructions: docs/instructions.md
-  docker-images: image.tar
+#  docker-images: image.tar
 main:
   type: docker
   image: main
