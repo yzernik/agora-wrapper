@@ -1,3 +1,7 @@
 agora.s9pk
 image.tar
+docker-images
 tri-push.sh
+scripts/embassy.js
+.DS_Store
+.vscode
