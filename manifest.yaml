@@ -1,11 +1,9 @@
 id: agora
 title: Agora
-version: 0.1.2.1
+version: 0.2.0
 release-notes: |
-  This one is Universal Package aka Fattie
-  * added support for x86_64 and aarch64 architecture
-  * health check fix
-  * Smaller and optimized service version
+  * Update to v0.2.0 [Release Notes](https://github.com/yzernik/agora/releases/tag/0.2.0)
+  * Update dependency versions for LND and CLN
 license: mit
 wrapper-repo: "https://github.com/yzernik/agora-wrapper"
 upstream-repo: "https://github.com/agora-org/agora"
@@ -86,14 +84,14 @@ dependencies:
       type: required
     config: ~
   lnd:
-    version: ">=0.14.2 <0.16.0"
+    version: ">=0.14.2 <0.17.0"
     description: Used to communicate with the Lightning Network.
     requirement:
       type: "opt-in"
       how: Use the LND instance by default
     config: ~
   c-lightning:
-    version: ">=0.11.1 <0.13.0"
+    version: ">=0.11.1 <24.0.0"
     description: Used to communicate with the Lightning Network.
     requirement:
       type: "opt-in"
